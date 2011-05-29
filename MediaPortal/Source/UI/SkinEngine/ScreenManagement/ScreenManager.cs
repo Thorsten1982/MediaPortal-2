@@ -1094,7 +1094,7 @@ namespace MediaPortal.UI.SkinEngine.ScreenManagement
         return null;
       }
       ServiceRegistration.Get<ILogger>().Debug("ScreenManager: Loading screen from file path '{0}'...", skinFilePath);
-      object obj = XamlLoader.Load(skinFilePath, loader, true);
+      object obj = XamlLoader.Load(skinFilePath, loader, true, false);
       Screen screen = obj as Screen;
       if (screen == null)
       {
