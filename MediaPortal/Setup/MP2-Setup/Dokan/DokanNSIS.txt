@@ -1,0 +1,39 @@
+﻿How to install dokan:
+    
+    INSTALL
+    
+      copy dokan lib files
+      
+        SetOutPath $PROGRAMFILES32\Dokan\DokanLibrary
+          File ..\dokan_control\objchk_${os}_x86\i386\dokanctl.exe
+XXXXX          File ..\dokan_mount\objchk_${os}_x86\i386\mounter.exe
+        SetOutPath $SYSDIR                                (32bit)
+          File ..\dokan\objchk_${os}_x86\i386\dokan.dll
+      
+      
+      copy dokan driver
+      
+32os    SetOutPath $SYSDIR\drivers
+          File ..\sys\objchk_${os}_x86\i386\dokan.sys
+          
+64os    SetOutPath $SYSDIR\drivers
+          File ..\sys\objchk_${os}_amd64\amd64\dokan.sys
+        
+      enable driver
+        ExecWait '"$PROGRAMFILES32\Dokan\DokanLibrary\dokanctl.exe" /i a' $0
+        
+      reboot
+
+
+
+    
+    
+    UNINSTALL
+    
+      Disable driver
+        ExecWait '"$PROGRAMFILES32\Dokan\DokanLibrary\dokanctl.exe" /r a' $0
+        
+      Remove dokan lib (including sys\dokan.dll)
+      Remove dokan driver
+      
+      reboot
