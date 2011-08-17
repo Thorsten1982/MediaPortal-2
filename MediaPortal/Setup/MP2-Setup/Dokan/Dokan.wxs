@@ -4,7 +4,7 @@
   <Fragment>
 
     <Property Id="DokanFile">1</Property>
-    
+
     <Condition Message="!(loc.LC_Dokan)">
       <![CDATA[Installed OR (DOKANVERCHECK64 AND VersionNT64) OR (DOKANVERCHECK32 AND NOT VersionNT64)]]>
     </Condition>
@@ -31,6 +31,91 @@
         <FileSearch Name="Dokan.sys" MinSize="120407" MaxSize="120409" />
       </DirectorySearch>
     </Property>
+
+    <!-- DokanLibrary -->
+    <DirectoryRef Id="SystemFolder">
+      <Component Id="dokan.dll32" Guid="5F26C90B-2163-4FA0-A264-CA815C528A74">
+        <File Id="dokan.dll32" KeyPath="yes" Source="$(var.ProjectDir)Dokan\binaries\win7\dll\dokan.dll" />
+      </Component>      
+      <!--
+      <Component Id="dokanctl.exe32" Guid="3C012FC7-F54C-446B-8F5D-A499E429F375">
+        <File Id="dokanctl.exe32" KeyPath="yes" Source="$(var.ProjectDir)Dokan\binaries\win7\dokanctl\dokanctl.exe" />
+      </Component>
+      -->
+    </DirectoryRef>
+
+    <ComponentGroup Id="DokanLibrary">
+      <ComponentRef Id="dokan.dll32"/>
+      <!--
+      <ComponentRef Id="dokanctl.exe32"/>
+      -->
+    </ComponentGroup>
+
+    <!-- DokanDriver -->
+    <DirectoryRef Id="SystemFolder">
+      <Directory Id="SystemFolder.Drivers" Name="drivers">
+
+        <Component Id="dokan.sys32" Guid="08E36576-73EF-4381-BC3F-91A3011148FE">
+          <File Id="dokan.sys32" KeyPath="yes" Source="$(var.ProjectDir)Dokan\binaries\win7\sys\dokan.sys" />
+          <Condition>
+            <![CDATA[Installed OR NOT VersionNT64]]>
+          </Condition>
+        </Component>
+
+      </Directory>
+    </DirectoryRef>
+
+    <DirectoryRef Id="System64Folder">
+      <Directory Id="System64Folder.Drivers" Name="drivers">
+
+        <Component Id="dokan.sys64" Guid="5483BC6B-B0DD-4688-BE28-94C406885448">
+          <File Id="dokan.sys64" KeyPath="yes" Source="$(var.ProjectDir)Dokan\binaries\x64\win7\sys\dokan.sys" />
+          <Condition>
+            <![CDATA[Installed OR VersionNT64]]>
+          </Condition>
+        </Component>
+
+      </Directory>
+    </DirectoryRef>
+
+    <ComponentGroup Id="DokanDriver">
+      <ComponentRef Id="dokan.sys32"/>
+      <ComponentRef Id="dokan.sys64"/>
+    </ComponentGroup>
+
+
+
+
+
+
+
+    <Feature Id="Dokan"
+             Level="1"
+             AllowAdvertise="no"
+             Display="expand"
+             Title="Dokan"
+             Description="This installs dokan lib and driver">
+      <ComponentGroupRef Id="DokanLibrary" />
+      <ComponentGroupRef Id="DokanDriver" />
+    </Feature>
+
+
+
+    <Binary Id="dokanctl_exe" SourceFile="$(var.ProjectDir)Dokan\binaries\win7\dokanctl\dokanctl.exe" />
+
+    <CustomAction Id="CA_RegisterDokan"
+                  BinaryKey="dokanctl_exe"
+                  Impersonate="yes"
+                  Execute="deferred"
+                  ExeCommand="/i a"
+                  Return="check" />
+
+    <CustomAction Id="CA_UnregisterDokan"
+                  BinaryKey="dokanctl_exe"
+                  Impersonate="yes"
+                  Execute="deferred"
+                  ExeCommand="/r a"
+                  Return="check" />
 
   </Fragment>
 </Wix>

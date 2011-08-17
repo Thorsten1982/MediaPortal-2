@@ -116,6 +116,8 @@
       </Directory>
 
       <Directory Id="DesktopFolder" />
+      <Directory Id="SystemFolder" />
+      <Directory Id="System64Folder" />
     </Directory>
 
     <!-- Shortcuts -->
@@ -174,7 +176,7 @@
     <InstallExecuteSequence>
       
       <Custom Action="ReadCustomPaths" Before="SetCustomPaths">(NOT Installed) AND (INSTALLTYPE_CUSTOM = 0)</Custom>
-      
+
       <Custom Action="SetCustomPaths" Before="FileCost">NOT Installed</Custom>
       <Custom Action="AttachClientAndServer" After="InstallFinalize">NOT Installed</Custom>
 
