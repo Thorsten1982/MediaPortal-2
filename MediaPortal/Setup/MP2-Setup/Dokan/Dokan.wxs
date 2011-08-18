@@ -103,7 +103,7 @@
 
 
 
-    <Binary Id="dokanctl_exe" SourceFile="$(var.ProjectDir)Dokan\binaries\win7\dokanctl\dokanctl.exe" />
+    <Binary Id="dokanctl_exe" SourceFile="$(var.ProjectDir)Dokan\binaries\win7\dokanctrl\dokanctl.exe" />
 
     <CustomAction Id="CA_RegisterDokan"
                   BinaryKey="dokanctl_exe"
