@@ -42,14 +42,16 @@ HRESULT STDMETHODCALLTYPE EVRCustomPresenter::get_DevSyncOffset(int *piDev)
 // Retrieves the number of frames drawn since streaming started.
 HRESULT STDMETHODCALLTYPE EVRCustomPresenter::get_FramesDrawn(int *pcFramesDrawn)
 {
-  return E_NOTIMPL;
+  *pcFramesDrawn = m_scheduler.GetFramesDrawn();
+  return S_OK;
 }
 
 
 // Retrieves the number of frames dropped by the renderer.
 HRESULT STDMETHODCALLTYPE EVRCustomPresenter::get_FramesDroppedInRenderer(int *pcFrames)
 {
-  return 0;
+  *pcFrames = m_scheduler.GetFramesDropped();
+  return S_OK;
 }
 
 
