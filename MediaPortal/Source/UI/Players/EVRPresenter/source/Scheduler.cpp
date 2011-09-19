@@ -43,7 +43,9 @@ Scheduler::Scheduler() :
   m_fRate(1.0f),
   m_LastSampleTime(0), 
   m_PerFrameInterval(0), 
-  m_PerFrame_1_4th(0)
+  m_PerFrame_1_4th(0),
+  m_framesDrawn(0),
+  m_framesDropped(0)
 {
 }
 
