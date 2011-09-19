@@ -247,6 +247,9 @@ HRESULT Scheduler::ScheduleSample(IMFSample *pSample, BOOL bPresentNow)
     return E_FAIL;
   }
 
+  LONGLONG hnsPresentationTime;
+  pSample->GetSampleTime(&hnsPresentationTime);
+
   if (bPresentNow || (m_pClock == NULL))
   {
     // Present the sample immediately.
@@ -254,14 +257,27 @@ HRESULT Scheduler::ScheduleSample(IMFSample *pSample, BOOL bPresentNow)
   }
   else
   {
-    // Queue the sample and ask the scheduler thread to wake up.
-    hr = m_ScheduledSamples.Enqueue(pSample);
+    // TODO: this check is not working inside DVD menu. We need either be informed from MP2 via callback 
+    //       or checking the graph for dvd filter and receive status change messages
 
-    if (SUCCEEDED(hr))
+    // check if a frame should be enqueued: only if the present time is later
+    // than the last frame time it is in proper ordering.
+    if (hnsPresentationTime > m_LastSampleTime || hnsPresentationTime == 0)
     {
-      PostThreadMessage(m_dwThreadID, eSchedule, 0, 0);
+      // Queue the sample and ask the scheduler thread to wake up.
+      hr = m_ScheduledSamples.Enqueue(pSample);
+
+      if (SUCCEEDED(hr))
+      {
+        PostThreadMessage(m_dwThreadID, eSchedule, 0, 0);
+      }
     }
+    else
+      Log("Scheduler::ScheduleSample skipping enqueuing of invalid timed frame (last: %I64d now: %I64d)", m_LastSampleTime, hnsPresentationTime);
   }
+
+  // Remember last frame time to check for proper order.
+  m_LastSampleTime = hnsPresentationTime;
 
   CHECK_HR(hr, "Scheduler::ScheduleSample failed");
 
