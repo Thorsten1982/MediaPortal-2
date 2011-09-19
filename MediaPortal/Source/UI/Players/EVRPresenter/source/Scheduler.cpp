@@ -312,9 +312,13 @@ bool Scheduler::ProcessSample(LONG *plNextSleep)
 
   LONGLONG hnsPresentationTime = 0;
   LONGLONG hnsTimeNow = 0;
-  MFTIME   hnsSystemTime = 0;
+  LONGLONG hnsSystemTime = 0;
+  
+  LONGLONG hnsSampleDuration = 0;
+  LONGLONG hnsSampleDuration_1_4th = 0;
 
   BOOL bPresentNow = TRUE;
+  BOOL bDiscardFrame = FALSE;
   LONG lNextSleep = 0;
 
   IMFSample *pSample;
@@ -325,6 +329,12 @@ bool Scheduler::ProcessSample(LONG *plNextSleep)
 
   if (m_pClock)
   {
+    // Query the real frame duration from sample, framerates are sometimes not correctly detected on playback start
+    hr = pSample->GetSampleDuration(&hnsSampleDuration);
+    
+    // Default to pre-calculated time, in static DVD menu we cannot get a correct sample duration.
+    hnsSampleDuration_1_4th = FAILED(hr) || hnsSampleDuration == 0 ? m_PerFrame_1_4th : hnsSampleDuration / 4;
+
     // Get the sample's time stamp. It is valid for a sample to
     // have no time stamp.
     hr = pSample->GetSampleTime(&hnsPresentationTime);
@@ -344,15 +354,17 @@ bool Scheduler::ProcessSample(LONG *plNextSleep)
         hnsDelta = -hnsDelta;
       }
 
+      bDiscardFrame = FALSE;
+
       if (hnsDelta < 0)
       {
         // This sample is late.
-        bPresentNow = TRUE;
+        bDiscardFrame = TRUE;
       }
-      else if (hnsDelta > m_PerFrame_1_4th)
+      else if (hnsDelta > (3 * hnsSampleDuration_1_4th))
       {
         // This sample is still too early. Go to sleep.
-        lNextSleep = MFTimeToMsec(hnsDelta - m_PerFrame_1_4th);
+        lNextSleep = MFTimeToMsec(hnsDelta - (3 * hnsSampleDuration_1_4th));
 
         // Adjust the sleep time for the clock rate. (The presentation clock runs
         // at m_fRate, but sleeping uses the system clock.)
@@ -361,25 +373,32 @@ bool Scheduler::ProcessSample(LONG *plNextSleep)
         // Don't present yet.
         bPresentNow = FALSE;
       }
+      else
+      {
+        // If the delay to present time is less than 3/4 duration, always present it
+        bPresentNow = TRUE;
+      }
     }
   }
 
   if (bPresentNow)
   {
+    m_framesDrawn++;    
     hr = m_pCB->PresentSample(pSample, hnsPresentationTime);
   }
-  else
+  else if (!bDiscardFrame)
   {
     // The sample is not ready yet. Return it to the queue.
     hr = m_ScheduledSamples.PutBack(pSample);
   }
+  else
+    m_framesDropped++;
 
   *plNextSleep = lNextSleep;
 
   SAFE_RELEASE(pSample);
   return true;
 }
-
 
 // ThreadProc for the scheduler thread.
 DWORD WINAPI Scheduler::SchedulerThreadProc(LPVOID lpParameter)
