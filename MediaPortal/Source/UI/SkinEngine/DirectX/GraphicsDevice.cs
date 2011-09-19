@@ -28,7 +28,7 @@
 //#define MAX_FRAMERATE
 
 // Define PROFILE_FRAMERATE to make MP log its current framerate every second. Don't use this setting in release builds.
-//#define PROFILE_FRAMERATE
+#define PROFILE_FRAMERATE
 
 using System;
 using System.Collections.Generic;
@@ -40,7 +40,6 @@ using MediaPortal.Common.Logging;
 using MediaPortal.UI.SkinEngine.ContentManagement;
 using MediaPortal.UI.SkinEngine.Players;
 using MediaPortal.UI.SkinEngine.ScreenManagement;
-using MediaPortal.UI.SkinEngine.SkinManagement;
 using SlimDX;
 using SlimDX.Direct3D9;
 
@@ -48,6 +47,16 @@ namespace MediaPortal.UI.SkinEngine.DirectX
 {
   public static class GraphicsDevice
   {
+    #region Constants
+
+#if MAX_FRAMERATE
+    const Present PRESENT_MODE = Present.ForceImmediate;
+#else
+    const Present PRESENT_MODE = Present.None;
+#endif
+
+    #endregion
+
     #region Variables
 
     private static readonly D3DSetup _setup = new D3DSetup();
@@ -99,6 +108,8 @@ namespace MediaPortal.UI.SkinEngine.DirectX
 
     public static void Dispose()
     {
+      StatsRenderer.Dispose();
+
       if (_backBuffer != null)
         _backBuffer.Dispose();
       _backBuffer = null;
@@ -337,10 +348,7 @@ namespace MediaPortal.UI.SkinEngine.DirectX
     {
       if (_device == null || _deviceLost)
         return true;
-#if (MAX_FRAMERATE == false)
-      if (doWaitForNextFame)
-        WaitForNextFrame();
-#endif
+
       _frameRenderingStartTime = DateTime.Now;
       lock (_setup)
       {
@@ -349,23 +357,17 @@ namespace MediaPortal.UI.SkinEngine.DirectX
           _device.Clear(ClearFlags.Target, Color.Black, 1.0f, 0);
           _device.BeginScene();
 
+#if PROFILE_FRAMERATE
+          StatsRenderer.BeginScene();
+#endif
           _screenManager.Render();
 
-          _device.EndScene();
-          _device.PresentEx(Present.ForceImmediate);
-
-          _fpsCounter += 1;
-          TimeSpan ts = DateTime.Now - _fpsTimer;
-          if (ts.TotalSeconds >= 1.0f)
-          {
-            float secs = (float) ts.TotalSeconds;
-            SkinContext.FPS = _fpsCounter / secs;
 #if PROFILE_FRAMERATE
-            ServiceRegistration.Get<ILogger>().Debug("RenderLoop: {0} frames per second, {1} total frames until last measurement", SkinContext.FPS, _fpsCounter);
+          StatsRenderer.EndScene();
 #endif
-            _fpsCounter = 0;
-            _fpsTimer = DateTime.Now;
-          }
+          _device.EndScene();
+
+          _device.PresentEx(PRESENT_MODE);
         }
         catch (Direct3D9Exception e)
         {

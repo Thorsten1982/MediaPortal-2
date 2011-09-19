@@ -161,6 +161,7 @@
     <Compile Include="Controls\Visuals\VirtualKeyboardPresenter.cs" />
     <Compile Include="DirectX\D3DSettings.cs" />
     <Compile Include="DirectX\PositionColoredTextured.cs" />
+    <Compile Include="DirectX\StatsRenderer.cs" />
     <Compile Include="DirectX\Triangulate\GraphicsPathHelper.cs" />
     <Compile Include="DirectX\Triangulate\TriangulateHelper.cs" />
     <Compile Include="Fonts\FontFamily.cs" />
