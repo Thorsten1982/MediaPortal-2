@@ -34,7 +34,6 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using MediaPortal.UI.Players.Video.Tools;
 using MediaPortal.UI.Presentation.Geometries;
-using MediaPortal.UI.SkinEngine.DirectX;
 using SlimDX.Direct3D9;
 
 namespace MediaPortal.UI.Players.Video
@@ -47,16 +46,16 @@ namespace MediaPortal.UI.Players.Video
   public interface IEVRPresentCallback
   {
     /// <summary>
-    /// Callback from EVRPresenter.dll to display a DirectX surface.
+    /// Callback from EVRPresenter.dll to display a DirectX texture.
     /// </summary>
     /// <param name="cx">Video width.</param>
     /// <param name="cy">Video height.</param>
     /// <param name="arx">Aspect Ratio X.</param>
     /// <param name="ary">Aspect Ratio Y.</param>
-    /// <param name="dwSurface">Address of the DirectX surface.</param>
+    /// <param name="dwTexture">Address of the DirectX texture.</param>
     /// <returns><c>0</c>, if the method succeeded, <c>!= 0</c> else.</returns>
     [PreserveSig]
-    int PresentSurface(Int16 cx, Int16 cy, Int16 arx, Int16 ary, uint dwSurface);
+    int PresentTexture(Int16 cx, Int16 cy, Int16 arx, Int16 ary, uint dwTexture);
   }
 
   public delegate void RenderDlgt();
@@ -74,8 +73,8 @@ namespace MediaPortal.UI.Players.Video
     private Size _aspectRatio = Size.Empty;
     private readonly RenderDlgt _renderDlgt;
     private Texture _texture = null;
-    private Surface _surface = null;
     private SizeF _surfaceMaxUV = Size.Empty;
+    private uint _lastTexturePointer = 0;
 
     #endregion
 
@@ -84,7 +83,7 @@ namespace MediaPortal.UI.Players.Video
       _renderDlgt = renderDlgt;
     }
 
-    #region public properties
+    #region Public Properties
 
     /// <summary>
     /// Gets the size of the texture which contains the current frame.
@@ -134,9 +133,9 @@ namespace MediaPortal.UI.Players.Video
     /// This function returns the pre-calculated maximum texture coordinates required to display the 
     /// frame without the border.
     /// </remarks>
-    public SizeF SurfaceMaxUV 
+    public SizeF SurfaceMaxUV
     {
-      get { return _surfaceMaxUV; } 
+      get { return _surfaceMaxUV; }
     }
 
     /// <summary>
@@ -163,7 +162,6 @@ namespace MediaPortal.UI.Players.Video
 
     private void FreeTexture()
     {
-      FilterGraphTools.TryDispose(ref _surface);
       FilterGraphTools.TryDispose(ref _texture);
     }
 
@@ -174,41 +172,38 @@ namespace MediaPortal.UI.Players.Video
 
     #region IEVRPresentCallback implementation
 
-    public int PresentSurface(short cx, short cy, short arx, short ary, uint dwSurface)
+    public int PresentTexture(short cx, short cy, short arx, short ary, uint dwTexture)
     {
       lock (_lock)
-        if (dwSurface != 0 && cx != 0 && cy != 0)
+      {
+        if (dwTexture != 0 && cx != 0 && cy != 0)
         {
-          if (cx != _originalVideoSize.Width || cy != _originalVideoSize.Height)
-          {
-            FreeTexture();
-            _originalVideoSize = new Size(cx, cy);
-          }
-          Rectangle cropRect = _cropSettings == null ? new Rectangle(Point.Empty, _originalVideoSize) :
-              _cropSettings.CropRect(_originalVideoSize);
+          _originalVideoSize = new Size(cx, cy);
+
+          Rectangle cropRect = _cropSettings == null ? new Rectangle(Point.Empty, _originalVideoSize) : _cropSettings.CropRect(_originalVideoSize);
+
           _croppedVideoSize = cropRect.Size;
 
           _aspectRatio.Width = arx;
           _aspectRatio.Height = ary;
 
-          if (_texture == null)
+          if (_texture == null || _lastTexturePointer != dwTexture)
           {
-            int ordinal = GraphicsDevice.Device.Capabilities.AdapterOrdinal;
-            AdapterInformation adapterInfo = MPDirect3D.Direct3D.Adapters[ordinal];
-            _texture = new Texture(GraphicsDevice.Device, _croppedVideoSize.Width, _croppedVideoSize.Height,
-                1, Usage.RenderTarget, adapterInfo.CurrentDisplayMode.Format, Pool.Default);
-            _surface = _texture.GetSurfaceLevel(0);
+            // Dispose old texture
+            FreeTexture();
 
+            // Remember pointer, if same is passed twice, we can reuse the texture (REPAINT calls)
+            _lastTexturePointer = dwTexture;
+
+            // FIXME: simply storing the complete texture does not apply cropping as it was done before inside StretchRectangle call
+            // maybe it should be done directly during rendering process
+            _texture = Texture.FromPointer(new IntPtr(dwTexture));
             SurfaceDescription desc = _texture.GetLevelDescription(0);
-            _surfaceMaxUV = new SizeF(_croppedVideoSize.Width / (float) desc.Width, _croppedVideoSize.Height / (float) desc.Height);
-          }
-
-          using (Surface surf = Surface.FromPointer(new IntPtr(dwSurface)))
-          {
-            GraphicsDevice.Device.StretchRectangle(surf, cropRect,
-                _surface, new Rectangle(Point.Empty, _croppedVideoSize), TextureFilter.None);
+            _surfaceMaxUV = new SizeF(_croppedVideoSize.Width/(float) desc.Width, _croppedVideoSize.Height/(float) desc.Height);
           }
         }
+      }
+
       VideoSizePresentDlgt vsp = VideoSizePresent;
       if (vsp != null)
       {

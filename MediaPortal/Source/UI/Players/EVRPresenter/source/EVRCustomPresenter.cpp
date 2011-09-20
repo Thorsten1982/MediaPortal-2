@@ -34,6 +34,8 @@ EVRCustomPresenter::EVRCustomPresenter(IEVRCallback* callback, IDirect3DDevice9E
 {
   hr = S_OK;
 
+  Log("EVRCustomPresenter::EVRCustomPresenter ---- EVR_v2.06 build initializing ----");
+
   // Initial source rectangle = (0,0,1,1)
   m_nrcSource.top = 0;
   m_nrcSource.left = 0;

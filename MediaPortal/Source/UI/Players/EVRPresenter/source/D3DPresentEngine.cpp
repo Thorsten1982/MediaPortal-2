@@ -21,7 +21,7 @@ D3DPresentEngine::D3DPresentEngine(IEVRCallback* callback, IDirect3DDevice9Ex* d
   m_pD3D9(NULL),
   m_pDevice(d3DDevice),
   m_pDeviceManager(NULL),
-  m_pSurfaceRepaint(NULL),
+  m_pTextureRepaint(NULL),
   m_EVRCallback(callback),
   m_Width(0),
   m_Height(0)
@@ -40,7 +40,7 @@ D3DPresentEngine::D3DPresentEngine(IEVRCallback* callback, IDirect3DDevice9Ex* d
 D3DPresentEngine::~D3DPresentEngine()
 {
   SAFE_RELEASE(m_pDevice);
-  SAFE_RELEASE(m_pSurfaceRepaint);
+  SAFE_RELEASE(m_pTextureRepaint);
   SAFE_RELEASE(m_pDeviceManager);
   SAFE_RELEASE(m_pD3D9);
 }
@@ -230,7 +230,7 @@ HRESULT D3DPresentEngine::CreateVideoSamples(IMFMediaType *pFormat, VideoSampleL
 // Released Direct3D resources used by this object. 
 void D3DPresentEngine::ReleaseResources()
 {
-  SAFE_RELEASE(m_pSurfaceRepaint);
+  SAFE_RELEASE(m_pTextureRepaint);
 }
 
 
@@ -289,6 +289,7 @@ HRESULT D3DPresentEngine::PresentSample(IMFSample* pSample, LONGLONG llTarget)
 
   IMFMediaBuffer* pBuffer = NULL;
   IDirect3DSurface9* pSurface = NULL;
+  IDirect3DTexture9* pTexture = NULL;
 
   if (pSample)
   {
@@ -298,6 +299,10 @@ HRESULT D3DPresentEngine::PresentSample(IMFSample* pSample, LONGLONG llTarget)
     {
       // Get the surface from the buffer.
       hr = MFGetService(pBuffer, MR_BUFFER_SERVICE, __uuidof(IDirect3DSurface9), (void**)&pSurface);
+      pSurface->GetContainer(IID_IDirect3DTexture9, (void**)&pTexture);
+      
+      // Store this pointer in case we need to repaint the texture.
+      CopyComPointer(m_pTextureRepaint, pTexture);
     }
     if (hr == D3DERR_DEVICELOST || hr == D3DERR_DEVICENOTRESET || hr == D3DERR_DEVICEHUNG)
     {
@@ -308,15 +313,15 @@ HRESULT D3DPresentEngine::PresentSample(IMFSample* pSample, LONGLONG llTarget)
       hr = S_OK;
     }
   }
-  else if (m_pSurfaceRepaint)
+  else if (m_pTextureRepaint)
   {
     // Redraw from the last surface.
-    pSurface = m_pSurfaceRepaint;
-    pSurface->AddRef();
+    CopyComPointer(pTexture, m_pTextureRepaint);
   }
 
-  hr = m_EVRCallback->PresentSurface(m_Width, m_Height, m_ArX, m_ArY, (DWORD) pSurface);
+  hr = m_EVRCallback->PresentTexture(m_Width, m_Height, m_ArX, m_ArY, (DWORD) pTexture);
 
+  SAFE_RELEASE(pTexture);
   SAFE_RELEASE(pSurface);
   SAFE_RELEASE(pBuffer);
 
