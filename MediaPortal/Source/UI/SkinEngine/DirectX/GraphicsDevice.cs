@@ -47,16 +47,6 @@ namespace MediaPortal.UI.SkinEngine.DirectX
 {
   public static class GraphicsDevice
   {
-    #region Constants
-
-#if MAX_FRAMERATE
-    const Present PRESENT_MODE = Present.ForceImmediate;
-#else
-    const Present PRESENT_MODE = Present.None;
-#endif
-
-    #endregion
-
     #region Variables
 
     private static readonly D3DSetup _setup = new D3DSetup();
@@ -74,6 +64,9 @@ namespace MediaPortal.UI.SkinEngine.DirectX
     private static DateTime _frameRenderingStartTime;
     private static int _fpsCounter = 0;
     private static DateTime _fpsTimer;
+
+    private static Present _presentMode = Present.None;
+    private static bool _maxFps = false;
 
     #endregion
 
@@ -142,6 +135,16 @@ namespace MediaPortal.UI.SkinEngine.DirectX
       get { return _msPerFrame; }
     }
 
+    public static bool MaxFPS
+    {
+      get { return _maxFps; }
+      set
+      {
+        _maxFps = value;
+        _presentMode = _maxFps ? Present.ForceImmediate : Present.None;
+      }
+    }
+
     private static void GetCapabilities()
     {
       _anisotropy = _device.Capabilities.MaxAnisotropy;
@@ -189,7 +192,7 @@ namespace MediaPortal.UI.SkinEngine.DirectX
       if (frameRate == 0)
         frameRate = 1;
       _targetFrameRate = frameRate;
-      _msPerFrame = (int) (1000/_targetFrameRate);
+      _msPerFrame = (int) (1000 / _targetFrameRate);
     }
 
     private static void ResetDxDevice()
@@ -277,7 +280,7 @@ namespace MediaPortal.UI.SkinEngine.DirectX
 
     public static DateTime LastRenderTime
     {
-       get { return _frameRenderingStartTime; }
+      get { return _frameRenderingStartTime; }
     }
 
     /// <summary>
@@ -334,7 +337,7 @@ namespace MediaPortal.UI.SkinEngine.DirectX
       Matrix translate = Matrix.Translation(-w, -h, 0.0f);
       TransformView = Matrix.Multiply(translate, flipY);
 
-      TransformProjection = Matrix.OrthoOffCenterLH(-w, w, -h, h, 0.0f, 2.0f); 
+      TransformProjection = Matrix.OrthoOffCenterLH(-w, w, -h, h, 0.0f, 2.0f);
       FinalTransform = TransformView * TransformProjection;
     }
 
@@ -356,18 +359,15 @@ namespace MediaPortal.UI.SkinEngine.DirectX
         {
           _device.Clear(ClearFlags.Target, Color.Black, 1.0f, 0);
           _device.BeginScene();
-
-#if PROFILE_FRAMERATE
           StatsRenderer.BeginScene();
-#endif
+
           _screenManager.Render();
 
-#if PROFILE_FRAMERATE
           StatsRenderer.EndScene();
-#endif
+          
           _device.EndScene();
 
-          _device.PresentEx(PRESENT_MODE);
+          _device.PresentEx(_presentMode);
         }
         catch (Direct3D9Exception e)
         {
