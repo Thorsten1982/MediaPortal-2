@@ -52,6 +52,7 @@ namespace MediaPortal.UI.SkinEngine.DirectX
     private static readonly D3DSetup _setup = new D3DSetup();
     private static DeviceEx _device;
     private static Surface _backBuffer;
+    private static IntPtr _hwnd;
     private static bool _deviceLost = false;
     private static int _anisotropy;
     private static bool _supportsFiltering;
@@ -81,6 +82,7 @@ namespace MediaPortal.UI.SkinEngine.DirectX
       {
         ServiceRegistration.Get<ILogger>().Debug("GraphicsDevice: Initialize DirectX");
         MPDirect3D.Load();
+        _hwnd = window.Handle;
         _setup.SetupDirectX(window);
         _backBuffer = _device.GetRenderTarget(0);
         int ordinal = _device.Capabilities.AdapterOrdinal;
@@ -199,18 +201,18 @@ namespace MediaPortal.UI.SkinEngine.DirectX
     {
       _setup.BuildPresentParamsFromSettings();
 
-      Result result = _device.Reset(_setup.PresentParameters);
+      Result result = _device.ResetEx(_setup.PresentParameters); 
 
       if (result == ResultCode.DeviceLost)
       {
-        result = _device.TestCooperativeLevel();
+        DeviceState state = _device.CheckDeviceState(_hwnd);
         // Loop until it's ok to reset
-        while (result == ResultCode.DeviceLost)
+        while (state == DeviceState.DeviceLost)
         {
           Thread.Sleep(10);
-          result = _device.TestCooperativeLevel();
+          state = _device.CheckDeviceState(_hwnd);
         }
-        _device.Reset(_setup.PresentParameters);
+        _device.ResetEx(_setup.PresentParameters);
       }
       ResetPerformanceData();
     }
@@ -403,9 +405,8 @@ namespace MediaPortal.UI.SkinEngine.DirectX
         ServiceRegistration.Get<ContentManager>().Free();
       }
 
-      Result result = _device.TestCooperativeLevel();
-
-      if (result == ResultCode.DeviceNotReset)
+      DeviceState state = _device.CheckDeviceState(_hwnd);
+      if (state != DeviceState.Ok)
       {
         ServiceRegistration.Get<ILogger>().Warn("GraphicsDevice: Aquired DirectX device");
         try
