@@ -488,7 +488,7 @@ namespace MediaPortal.UI.SkinEngine.DirectX
             _graphicsSettings.AdapterOrdinal,
             _graphicsSettings.DevType,
             _ourRenderTarget.Handle,
-            createFlags | CreateFlags.Multithreaded,
+            createFlags | CreateFlags.Multithreaded | CreateFlags.EnablePresentStatistics,
             _presentParams);
 
         //GraphicsDevice.Device.DeviceResizing += _cancelEventHandler;
