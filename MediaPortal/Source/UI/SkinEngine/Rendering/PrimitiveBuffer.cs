@@ -181,6 +181,7 @@ namespace MediaPortal.UI.SkinEngine.Rendering
       GraphicsDevice.Device.VertexFormat = VertexFormat;
       GraphicsDevice.Device.SetStreamSource(stream, _vertexBuffer, 0, StrideSize);
       GraphicsDevice.Device.DrawPrimitives(_primitiveType, 0, _primitiveCount);
+      StatsRenderer.PrimitivesCounter += _primitiveCount;
     }
 
     #endregion

@@ -185,7 +185,7 @@ namespace MediaPortal.UI.SkinEngine.ContentManagement.AssetCore
         if (!IsAllocated)
           return;
       }
-
+      StatsRenderer.EffectAssetCounter++;
       _effect.SetValue(_handleWorldProjection, finalTransform * GraphicsDevice.FinalTransform);
       _effect.SetTexture(_handleTexture, texture);
       _effect.Technique = _handleTechnique;

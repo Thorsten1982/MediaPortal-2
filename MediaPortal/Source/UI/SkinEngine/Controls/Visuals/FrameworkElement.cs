@@ -1662,6 +1662,8 @@ namespace MediaPortal.UI.SkinEngine.Controls.Visuals
       if (!IsVisible)
         return;
 
+      StatsRenderer.VisualsCounter++;
+
       RectangleF bounds = ActualBounds;
       if (bounds.Width <= 0 || bounds.Height <= 0)
         return;
