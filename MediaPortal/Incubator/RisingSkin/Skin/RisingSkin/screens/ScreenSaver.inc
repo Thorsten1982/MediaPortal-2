@@ -12,10 +12,10 @@
     <Control x:Name="AnalogClock" Style="{ThemeResource AnalogClockStyle}" HorizontalAlignment="Center"/>
     <Label x:Name="Date" FontSize="{ThemeResource DateTimeFontSize}"
         HorizontalAlignment="Center"
-        Content="{Binding Source={StaticResource TimeModel}, Path=CurrentDate}" />
+        Content="{Binding Source={StaticResource TimeModel}, Path=CurrentDate}" Color="{ThemeResource TextColor}"/>
     <Label x:Name="Time" FontSize="{ThemeResource DateTimeFontSize}"
         HorizontalAlignment="Center"
-        Content="{Binding Source={StaticResource TimeModel}, Path=CurrentTime}" />
+        Content="{Binding Source={StaticResource TimeModel}, Path=CurrentTime}" Color="{ThemeResource TextColor}"/>
   </StackPanel>
 
 </DockPanel>
