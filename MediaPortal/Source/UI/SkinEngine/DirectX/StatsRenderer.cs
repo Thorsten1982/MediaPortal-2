@@ -1,6 +1,5 @@
 ﻿using System;
-using System.Runtime.InteropServices;
-using MediaPortal.Core;
+using MediaPortal.Common;
 using MediaPortal.UI.Control.InputManager;
 using MediaPortal.UI.SkinEngine.SkinManagement;
 using SlimDX;
